@@ -1122,15 +1122,55 @@
             100% { transform: scale(1); }
         }
 
-        /* Responsive */
+        /* --- NEW MOBILE COMPATIBILITY ADDITIONS --- */
+        #mobile-menu-toggle {
+            display: none;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            color: #000;
+            text-align: center;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            z-index: 1000;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 15px rgba(0,240,255,0.4);
+        }
+
+        /* Responsive Overrides */
         @media (max-width: 768px) {
-            .main-wrapper { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; max-height: 250px; }
-            .content-padding { padding: 20px; }
+            #mobile-menu-toggle { display: block; }
+            .main-wrapper { flex-direction: column; width: 100%; }
+            .sidebar {
+                position: fixed !important;
+                top: 0; left: -100% !important;
+                height: 100vh !important; max-height: 100vh !important;
+                width: 85% !important;
+                z-index: 2000 !important;
+                transition: left 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+                padding-top: 50px;
+            }
+            .sidebar.open { left: 0 !important; }
+            body.menu-open::after {
+                content: ''; position: fixed; inset: 0;
+                background: rgba(0,0,0,0.7); z-index: 1500;
+            }
+            table { display: block; overflow-x: auto; white-space: nowrap; }
+            h1 { font-size: 2rem !important; }
+            h2 { font-size: 1.5rem !important; }
+            .interactive-sphere-wrapper { height: 250px !important; }
+            .drag-sphere { width: 150px !important; height: 150px !important; }
+            .content-padding { padding: 15px !important; }
             .blob { display: none; }
-            .options-grid { grid-template-columns: 1fr; }
+            .options-grid { grid-template-columns: 1fr !important; }
+            .arcade-grid { grid-template-columns: 1fr !important; }
+            .relax-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+            .relax-card { height: 130px !important; padding: 10px !important; }
+            .relax-card h3 { font-size: 0.9rem !important; }
             #focus-widget { width: 70px; height: 70px; bottom: 10px; right: 10px; }
             .focus-label { font-size: 0.6rem; bottom: -15px; }
+            .svg-graph { max-width: 100% !important; height: auto !important; }
         }
     </style>
 </head>
@@ -1139,6 +1179,8 @@
     <div class="credits-banner">
         Created by Qusai Slatewala | Data sourced from slides of PES University Bangalore
     </div>
+
+    <div id="mobile-menu-toggle" onclick="toggleMobileMenu()">☰ OPEN STUDY MENU</div>
 
     <div class="main-wrapper">
         <div id="star-container"></div>
@@ -2118,7 +2160,7 @@
 
                         <div class="relax-card">
                             <h3>12. Scribble Pad</h3>
-                            <canvas id="mini-draw" width="150" height="70" style="background:#fff; border-radius:5px;"></canvas>
+                            <canvas id="mini-draw" width="150" height="70" style="background:#fff; border-radius:5px; touch-action: none;"></canvas>
                         </div>
 
                         <div class="relax-card" id="react-box" onclick="testReact()">
@@ -2259,6 +2301,13 @@
             const mainArea = document.getElementById('mainScrollArea');
             mainArea.scrollTop = 0;
             document.getElementById("myBar").style.width = "0%";
+            
+            // Auto close mobile menu
+            if(window.innerWidth <= 768) {
+                document.querySelector('.sidebar').classList.remove('open');
+                document.body.classList.remove('menu-open');
+                document.getElementById('mobile-menu-toggle').innerText = '☰ OPEN STUDY MENU';
+            }
         }
 
         // Accordion functionality
@@ -2276,22 +2325,33 @@
             });
         }
 
+        // --- NEW MOBILE MENU TOGGLE ---
+        function toggleMobileMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('open');
+            document.body.classList.toggle('menu-open');
+            const btn = document.getElementById('mobile-menu-toggle');
+            if(sidebar.classList.contains('open')) {
+                btn.innerText = '✖ CLOSE STUDY MENU';
+            } else {
+                btn.innerText = '☰ OPEN STUDY MENU';
+            }
+        }
+
         // --- DRAGGABLE 3D SPHERE LOGIC ---
         const bigSphere = document.getElementById('draggable-3d-sphere');
         let isDragging = false;
         let sRotX = 0, sRotY = 0;
         let prevX = 0, prevY = 0;
 
-        bigSphere.addEventListener('mousedown', (e) => {
+        const startDrag = (x, y) => {
             isDragging = true;
-            prevX = e.clientX;
-            prevY = e.clientY;
-        });
-
-        window.addEventListener('mouseup', (e) => {
+            prevX = x;
+            prevY = y;
+        };
+        const stopDrag = () => {
             if(isDragging) {
                 isDragging = false;
-                // Burst on release
                 for(let i=0; i<8; i++){
                     let burst = document.createElement('div');
                     burst.className = 'burst-particle';
@@ -2302,18 +2362,26 @@
                     setTimeout(() => burst.remove(), 800);
                 }
             }
-        });
-
-        window.addEventListener('mousemove', (e) => {
+        };
+        const moveDrag = (x, y) => {
             if(!isDragging) return;
-            const deltaX = e.clientX - prevX;
-            const deltaY = e.clientY - prevY;
+            const deltaX = x - prevX;
+            const deltaY = y - prevY;
             sRotY += deltaX * 0.8;
             sRotX -= deltaY * 0.8;
             bigSphere.style.transform = `rotateX(${sRotX}deg) rotateY(${sRotY}deg)`;
-            prevX = e.clientX;
-            prevY = e.clientY;
-        });
+            prevX = x;
+            prevY = y;
+        };
+
+        // Mouse events
+        bigSphere.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
+        window.addEventListener('mouseup', stopDrag);
+        window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+        // Touch events
+        bigSphere.addEventListener('touchstart', (e) => { e.preventDefault(); startDrag(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+        window.addEventListener('touchend', stopDrag);
+        window.addEventListener('touchmove', (e) => { if(isDragging) moveDrag(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
 
         // --- POMODORO TIMER LOGIC ---
         let pomoInterval;
@@ -2475,13 +2543,22 @@
             document.querySelectorAll('.ttt-cell').forEach(c => { c.innerText = ''; });
         }
 
-        // Mini Canvas
+        // Mini Canvas (with mobile touch support)
         const canvas = document.getElementById('mini-draw');
         const ctx = canvas.getContext('2d');
         let drawing = false;
-        canvas.onmousedown = (e) => { drawing = true; ctx.moveTo(e.offsetX, e.offsetY); }
-        canvas.onmouseup = () => drawing = false;
-        canvas.onmousemove = (e) => { if(drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } }
+        
+        const startDraw = (x, y) => { drawing = true; ctx.moveTo(x, y); };
+        const endDraw = () => { drawing = false; };
+        const drawMove = (x, y) => { if(drawing) { ctx.lineTo(x, y); ctx.stroke(); } };
+
+        canvas.addEventListener('mousedown', (e) => startDraw(e.offsetX, e.offsetY));
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('mousemove', (e) => drawMove(e.offsetX, e.offsetY));
+        
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); const rect = canvas.getBoundingClientRect(); startDraw(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top); }, {passive:false});
+        canvas.addEventListener('touchend', endDraw);
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); const rect = canvas.getBoundingClientRect(); drawMove(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top); }, {passive:false});
 
         // --- ARCADE LOGIC ---
         function flipCard(card) {
@@ -2532,6 +2609,21 @@
                 }
             }, 1000);
         }
+
+        // Observer to automatically add touch support to dynamically spawned aim targets
+        const aimObserver = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if(node.classList && node.classList.contains('aim-target')) {
+                        node.addEventListener('touchstart', (e) => {
+                            e.preventDefault();
+                            node.onmousedown(e);
+                        }, {passive:false});
+                    }
+                });
+            });
+        });
+        aimObserver.observe(aimArea, { childList: true });
 
         function spawnTarget() {
             if(aimTime <= 0) return;
