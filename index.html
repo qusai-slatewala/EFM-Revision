@@ -2286,6 +2286,10 @@
                     <p>Use this space to jot down quick thoughts or memorization notes. Everything saves automatically to your device!</p>
                     
                     <textarea id="local-notes" class="notes-textarea" placeholder="Type your personal notes here... (Auto-saves automatically)"></textarea>
+
+<button class="arcade-btn" onclick="downloadNotes()" style="margin-top: 15px; width: 100%; border-color: #00ff9d; color: #00ff9d; font-size: 1rem; padding: 12px; box-shadow: 0 0 10px rgba(0,255,157,0.2);">
+                        💾 Download Notes as .txt
+                    </button>
                     
                     <div id="toast">✅ Auto-Saved!</div>
 
@@ -3744,6 +3748,37 @@ function spawnSticky() {
             generateRandomMCQ();
             checkBadges();
         });
+// FEATURE: Download Scratchpad Notes as TXT
+        function downloadNotes() {
+            const notesText = document.getElementById('local-notes').value;
+            
+            if (!notesText.trim()) {
+                showToast("⚠️ Scratchpad is empty!");
+                return;
+            }
+
+            // Create a text blob
+            const blob = new Blob([notesText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            // Create a temporary hidden link to trigger the download
+            const a = document.createElement('a');
+            a.href = url;
+            
+            // Name the file dynamically with today's date
+            const date = new Date().toISOString().slice(0, 10);
+            a.download = `Study_Notes_${date}.txt`;
+            
+            // Trigger the download
+            document.body.appendChild(a);
+            a.click();
+            
+            // Clean up
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast("✅ Notes Downloaded!");
+        }
 
     </script>
 </body>
